@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>Niranjan Game</title>
+  <style>
+    body {
+      background-color: black;
+      color: white;
+      font-family: monospace;
+      text-align: center;
+      padding: 20px;
+    }
+    h1 {
+      color: red;
+    }
+    table {
+      margin: 20px auto;
+      border-collapse: collapse;
+    }
+    td {
+      width: 60px;
+      height: 60px;
+      font-size: 24px;
+      color: white;
+      border: 2px solid white;
+      cursor: pointer;
+    }
+    td.locked1 {
+      background-color: #00cc00;
+    }
+    td.locked2 {
+      background-color: #cc0000;
+    }
+    button {
+      margin: 10px;
+      padding: 10px 20px;
+      font-size: 18px;
+      background-color: grey;
+      border: none;
+      color: white;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    input {
+      padding: 10px;
+      margin: 10px;
+      font-size: 16px;
+      border-radius: 5px;
+      border: none;
+    }
+    #startScreen, #auth, #loading, #game {
+      display: none;
+    }
+    #winner {
+      font-size: 20px;
+      margin-top: 15px;
+      color: yellow;
+    }
+  </style>
+</head>
+<body>
+  <h1>Niranjan Game</h1>
+
+  <!-- Start Screen -->
+  <div id="startScreen">
+    <button onclick="startGame()">START</button>
+  </div>
+
+  <!-- Auth Section -->
+  <div id="auth">
+    <div id="registerSection">
+      <h2>Register</h2>
+      <input type="text" id="regUsername" placeholder="Enter Username" /><br>
+      <input type="password" id="regPassword" placeholder="Enter Password" /><br>
+      <button onclick="register()">Register</button>
+      <p id="regMsg" style="color:yellow;"></p>
+    </div>
+    <div id="loginSection">
+      <h2>Login</h2>
+      <input type="text" id="loginUsername" placeholder="Enter Username" /><br>
+      <input type="password" id="loginPassword" placeholder="Enter Password" /><br>
+      <button onclick="login()">Login</button>
+      <p id="loginMsg" style="color:yellow;"></p>
+    </div>
+  </div>
+
+  <!-- Loading -->
+  <div id="loading">
+    <h2>Loading...</h2>
+    <p id="loadPercent">0%</p>
+  </div>
+
+  <!-- Game -->
+  <div id="game">
+    <p style="color:yellow">Player 1 = Green | Player 2 = Red</p>
+    <table id="board"></table>
+    <div id="winner"></div>
+    <button onclick="restartGame()">Restart</button>
+  </div>
+
+  <!-- Background Music -->
+  <audio id="bgMusic" loop>
+    <source src="https://github.com/Niranjan164/Piono/raw/main/serenity-329278_012913.mp3" type="audio/mpeg">
+    Your browser does not support the audio element.
+  </audio>
+
+
+  <script>
+    const startScreen = document.getElementById("startScreen");
+    const authDiv = document.getElementById("auth");
+    const registerSection = document.getElementById("registerSection");
+    const loginSection = document.getElementById("loginSection");
+    const regMsg = document.getElementById("regMsg");
+    const loginMsg = document.getElementById("loginMsg");
+    const loadingDiv = document.getElementById("loading");
+    const gameDiv = document.getElementById("game");
+    const loadPercent = document.getElementById("loadPercent");
+    const board = document.getElementById("board");
+    const winnerDiv = document.getElementById("winner");
+    const bgMusic = document.getElementById("bgMusic");
+
+    let currentPlayer = 1;
+    let gameOver = false;
+    let grid = Array(3).fill().map(() => Array(3).fill(0));
+
+    window.onload = function () {
+      startScreen.style.display = "block";
+    };
+
+    function startGame() {
+      bgMusic.play();
+      startScreen.style.display = "none";
+      authDiv.style.display = "block";
+      if (localStorage.getItem("Niranjan")) {
+        registerSection.style.display = "none";
+        loginSection.style.display = "block";
+      } else {
+        registerSection.style.display = "block";
+        loginSection.style.display = "none";
+      }
+    }
+
+    function register() {
+      const username = document.getElementById("regUsername").value.trim();
+      const password = document.getElementById("regPassword").value.trim();
+      if (username === "" || password === "") {
+        regMsg.innerText = "Please fill in both fields.";
+        return;
+      }
+      localStorage.setItem("Niranjan", username + "," + password);
+      regMsg.innerText = "Registered! Please log in.";
+      registerSection.style.display = "none";
+      loginSection.style.display = "block";
+    }
+
+    function login() {
+      const stored = localStorage.getItem("Niranjan");
+      const enteredUsername = document.getElementById("loginUsername").value.trim();
+      const enteredPassword = document.getElementById("loginPassword").value.trim();
+      if (!stored) {
+        loginMsg.innerText = "No user registered.";
+        return;
+      }
+      const [storedUsername, storedPassword] = stored.split(",");
+      if (enteredUsername === storedUsername && enteredPassword === storedPassword) {
+        authDiv.style.display = "none";
+        startLoading();
+      } else {
+        loginMsg.innerText = "Incorrect username or password.";
+      }
+    }
+
+    function startLoading() {
+      loadingDiv.style.display = "block";
+      let percent = 0;
+      const interval = setInterval(() => {
+        percent += 5;
+        loadPercent.innerText = percent + "%";
+        if (percent >= 100) {
+          clearInterval(interval);
+          loadingDiv.style.display = "none";
+          startRealGame();
+        }
+      }, 100);
+    }
+
+    function startRealGame() {
+      gameDiv.style.display = "block";
+      createBoard();
+    }
+
+    function createBoard() {
+      board.innerHTML = "";
+      for (let i = 0; i < 3; i++) {
+        const row = document.createElement("tr");
+        for (let j = 0; j < 3; j++) {
+          const cell = document.createElement("td");
+          cell.onclick = () => cellClick(i, j, cell);
+          row.appendChild(cell);
+        }
+        board.appendChild(row);
+      }
+    }
+
+    function cellClick(i, j, cell) {
+      if (gameOver || grid[i][j] !== 0) return;
+      grid[i][j] = currentPlayer;
+      cell.classList.add("locked" + currentPlayer);
+      if (checkWin()) {
+        winnerDiv.innerText = `Player ${currentPlayer} wins!`;
+        gameOver = true;
+      } else {
+        currentPlayer = 3 - currentPlayer;
+      }
+    }
+
+    function checkWin() {
+      for (let i = 0; i < 3; i++) {
+        if (grid[i][0] && grid[i][0] === grid[i][1] && grid[i][1] === grid[i][2]) return true;
+        if (grid[0][i] && grid[0][i] === grid[1][i] && grid[1][i] === grid[2][i]) return true;
+      }
+      if (grid[0][0] && grid[0][0] === grid[1][1] && grid[1][1] === grid[2][2]) return true;
+      if (grid[0][2] && grid[0][2] === grid[1][1] && grid[1][1] === grid[2][0]) return true;
+      return false;
+    }
+
+    function restartGame() {
+      grid = Array(3).fill().map(() => Array(3).fill(0));
+      currentPlayer = 1;
+      gameOver = false;
+      winnerDiv.innerText = "";
+      createBoard();
+    }
+  </script>
+</body>
+</html>
