@@ -2,41 +2,41 @@
 <html>
 <head>
   <meta charset="UTF-8" />
-  <title>Niranjan Game</title>
+  <title>NIRANJAN CREATIONS</title>
   <style>
     body {
-      background-color: black;
-      color: white;
+      margin: 0;
       font-family: monospace;
       text-align: center;
-      padding: 20px;
+      overflow: hidden;
+      background: lightblue;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+    }
+    .floating-cube {
+      position: absolute;
+      width: 30px;
+      height: 30px;
+      background: lightgreen;
+      animation: floatCube 10s linear infinite;
+    }
+    @keyframes floatCube {
+      from {transform: translateY(100vh);}
+      to {transform: translateY(-100vh);}
     }
     h1 {
-      color: red;
-    }
-    table {
-      margin: 20px auto;
-      border-collapse: collapse;
-    }
-    td {
-      width: 60px;
-      height: 60px;
-      font-size: 24px;
-      color: white;
-      border: 2px solid white;
-      cursor: pointer;
-    }
-    td.locked1 {
-      background-color: #00cc00;
-    }
-    td.locked2 {
-      background-color: #cc0000;
+      color: cyan;
+      font-size: 36px;
+      margin-top: 30px;
     }
     button {
       margin: 10px;
       padding: 10px 20px;
       font-size: 18px;
-      background-color: grey;
+      background-color: green;
       border: none;
       color: white;
       border-radius: 8px;
@@ -49,8 +49,26 @@
       border-radius: 5px;
       border: none;
     }
+    table {
+      margin: 20px auto;
+      border-collapse: collapse;
+    }
+    td {
+      width: 60px;
+      height: 60px;
+      font-size: 24px;
+      border: 2px solid white;
+      cursor: pointer;
+    }
+    td.locked1 {
+      background-color: #00cc00;
+    }
+    td.locked2 {
+      background-color: #cc0000;
+    }
     #startScreen, #auth, #loading, #game {
       display: none;
+      text-align: center;
     }
     #winner {
       font-size: 20px;
@@ -60,14 +78,11 @@
   </style>
 </head>
 <body>
-  <h1>Niranjan Game</h1>
-
-  <!-- Start Screen -->
+  <h1>NIRANJAN CREATIONS</h1>
   <div id="startScreen">
     <button onclick="startGame()">START</button>
   </div>
 
-  <!-- Auth Section -->
   <div id="auth">
     <div id="registerSection">
       <h2>Register</h2>
@@ -85,26 +100,22 @@
     </div>
   </div>
 
-  <!-- Loading -->
   <div id="loading">
     <h2>Loading...</h2>
     <p id="loadPercent">0%</p>
   </div>
 
-  <!-- Game -->
   <div id="game">
-    <p style="color:yellow">Player 1 = Green | Player 2 = Red</p>
+    <p style="color:yellow">Player 1 = NIRANJAN (Green) | Player 2 = <span id="userDisplay"></span> (Red)</p>
     <table id="board"></table>
     <div id="winner"></div>
     <button onclick="restartGame()">Restart</button>
   </div>
 
-  <!-- Background Music -->
   <audio id="bgMusic" loop>
     <source src="https://github.com/Niranjan164/Piono/raw/main/serenity-329278_012913.mp3" type="audio/mpeg">
     Your browser does not support the audio element.
   </audio>
-
 
   <script>
     const startScreen = document.getElementById("startScreen");
@@ -119,12 +130,21 @@
     const board = document.getElementById("board");
     const winnerDiv = document.getElementById("winner");
     const bgMusic = document.getElementById("bgMusic");
+    const userDisplay = document.getElementById("userDisplay");
 
     let currentPlayer = 1;
     let gameOver = false;
     let grid = Array(3).fill().map(() => Array(3).fill(0));
+    let user = "";
 
-    window.onload = function () {
+    window.onload = () => {
+      for (let i = 0; i < 30; i++) {
+        const cube = document.createElement("div");
+        cube.classList.add("floating-cube");
+        cube.style.left = Math.random() * window.innerWidth + "px";
+        cube.style.animationDuration = 5 + Math.random() * 10 + "s";
+        document.body.appendChild(cube);
+      }
       startScreen.style.display = "block";
     };
 
@@ -164,6 +184,7 @@
       }
       const [storedUsername, storedPassword] = stored.split(",");
       if (enteredUsername === storedUsername && enteredPassword === storedPassword) {
+        user = storedUsername;
         authDiv.style.display = "none";
         startLoading();
       } else {
@@ -186,6 +207,7 @@
     }
 
     function startRealGame() {
+      userDisplay.innerText = user;
       gameDiv.style.display = "block";
       createBoard();
     }
@@ -196,11 +218,14 @@
         const row = document.createElement("tr");
         for (let j = 0; j < 3; j++) {
           const cell = document.createElement("td");
-          cell.onclick = () => cellClick(i, j, cell);
+          cell.onclick = () => {
+            if (currentPlayer === 2) cellClick(i, j, cell);
+          };
           row.appendChild(cell);
         }
         board.appendChild(row);
       }
+      if (currentPlayer === 1) computerPlay();
     }
 
     function cellClick(i, j, cell) {
@@ -208,10 +233,24 @@
       grid[i][j] = currentPlayer;
       cell.classList.add("locked" + currentPlayer);
       if (checkWin()) {
-        winnerDiv.innerText = `Player ${currentPlayer} wins!`;
+        winnerDiv.innerText = `Player ${currentPlayer === 1 ? "NIRANJAN" : user} wins!`;
         gameOver = true;
       } else {
         currentPlayer = 3 - currentPlayer;
+        if (currentPlayer === 1) setTimeout(computerPlay, 500);
+      }
+    }
+
+    function computerPlay() {
+      if (gameOver) return;
+      for (let i = 0; i < 3; i++) {
+        for (let j = 0; j < 3; j++) {
+          if (grid[i][j] === 0) {
+            const cell = board.rows[i].cells[j];
+            cellClick(i, j, cell);
+            return;
+          }
+        }
       }
     }
 
