@@ -1,0 +1,217 @@
+<!DOCTYPE html><html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Niranjan Game</title>
+  <style>
+    body {
+      background-color: black;
+      color: white;
+      font-family: monospace;
+      text-align: center;
+      padding: 20px;
+    }
+    h1 {
+      color: red;
+    }
+    table {
+      margin: 20px auto;
+      border-collapse: collapse;
+    }
+    td {
+      width: 60px;
+      height: 60px;
+      font-size: 24px;
+      color: white;
+      border: 2px solid white;
+      cursor: pointer;
+    }
+    td.locked1 {
+      background-color: #00cc00;
+    }
+    td.locked2 {
+      background-color: #cc0000;
+    }
+    #winner {
+      font-size: 20px;
+      margin-top: 15px;
+      color: yellow;
+    }
+    button {
+      margin-top: 20px;
+      padding: 10px 20px;
+      font-size: 18px;
+      background-color: grey;
+      border: none;
+      color: white;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    input {
+      padding: 10px;
+      margin: 10px;
+      font-size: 16px;
+      border-radius: 5px;
+      border: none;
+    }
+    #auth, #loading, #game {
+      display: none;
+    }
+    #loading h2, #loading p {
+      color: red;
+    }
+  </style>
+</head>
+<body>
+  <h1>Niranjan Game</h1>
+  <div id="auth">
+    <div id="registerSection">
+      <h2>Register</h2>
+      <input type="text" id="regUsername" placeholder="Enter Username" /><br>
+      <input type="password" id="regPassword" placeholder="Enter Password" /><br>
+      <button onclick="register()">Register</button>
+      <p id="regMsg" style="color:yellow;"></p>
+    </div>
+    <div id="loginSection">
+      <h2>Login</h2>
+      <input type="text" id="loginUsername" placeholder="Enter Username" /><br>
+      <input type="password" id="loginPassword" placeholder="Enter Password" /><br>
+      <button onclick="login()">Login</button>
+      <p id="loginMsg" style="color:yellow;"></p>
+    </div>
+  </div>
+  <div id="loading">
+    <h2>Loading...</h2>
+    <p id="loadPercent">0%</p>
+  </div>
+  <div id="game">
+    <p style="color:yellow">Player 1 = Green | Player 2 = Red</p>
+    <table id="board"></table>
+    <div id="winner"></div>
+    <button onclick="restartGame()">Restart</button>
+  </div>
+  <script>
+    const authDiv = document.getElementById("auth");
+    const registerSection = document.getElementById("registerSection");
+    const loginSection = document.getElementById("loginSection");
+    const regMsg = document.getElementById("regMsg");
+    const loginMsg = document.getElementById("loginMsg");
+    const loadingDiv = document.getElementById("loading");
+    const gameDiv = document.getElementById("game");
+    const loadPercent = document.getElementById("loadPercent");
+    const board = document.getElementById("board");
+    const winnerDiv = document.getElementById("winner");let currentPlayer = 1;
+let gameOver = false;
+let grid = Array(3).fill().map(() => Array(3).fill(0));
+
+window.onload = function() {
+  authDiv.style.display = "block";
+  if(localStorage.getItem("Niranjan")) {
+    registerSection.style.display = "none";
+    loginSection.style.display = "block";
+  } else {
+    registerSection.style.display = "block";
+    loginSection.style.display = "none";
+  }
+};
+
+function register() {
+  if(localStorage.getItem("Niranjan")) {
+    regMsg.innerText = "User already registered. Please login.";
+    return;
+  }
+  const username = document.getElementById("regUsername").value.trim();
+  const password = document.getElementById("regPassword").value.trim();
+  if(username === "" || password === "") {
+    regMsg.innerText = "Please fill in both fields.";
+    return;
+  }
+  localStorage.setItem("Niranjan", username + "," + password);
+  regMsg.innerText = "Registration successful! Please login.";
+  registerSection.style.display = "none";
+  loginSection.style.display = "block";
+}
+
+function login() {
+  const username = document.getElementById("loginUsername").value.trim();
+  const password = document.getElementById("loginPassword").value.trim();
+  const stored = localStorage.getItem("Niranjan");
+  if(!stored) {
+    loginMsg.innerText = "No registered user found. Please register first.";
+    return;
+  }
+  const [storedUser, storedPass] = stored.split(",");
+  if(username === storedUser && password === storedPass) {
+    authDiv.style.display = "none";
+    startLoading();
+  } else {
+    loginMsg.innerText = "Incorrect username or password.";
+  }
+}
+
+function startLoading() {
+  loadingDiv.style.display = "block";
+  let percent = 0;
+  const interval = setInterval(() => {
+    loadPercent.innerText = percent + "%";
+    percent++;
+    if(percent > 100) {
+      clearInterval(interval);
+      loadingDiv.style.display = "none";
+      gameDiv.style.display = "block";
+      createBoard();
+    }
+  }, 30);
+}
+
+function createBoard() {
+  board.innerHTML = "";
+  for(let i = 0; i < 3; i++) {
+    const row = document.createElement("tr");
+    for(let j = 0; j < 3; j++) {
+      const cell = document.createElement("td");
+      cell.dataset.row = i;
+      cell.dataset.col = j;
+      cell.addEventListener("click", handleMove);
+      row.appendChild(cell);
+    }
+    board.appendChild(row);
+  }
+}
+
+function handleMove(e) {
+  if(gameOver) return;
+  const row = e.target.dataset.row;
+  const col = e.target.dataset.col;
+  if(grid[row][col] == 0) {
+    grid[row][col] = currentPlayer;
+    e.target.classList.add(currentPlayer == 1 ? "locked1" : "locked2");
+    checkWinner();
+    currentPlayer = (currentPlayer === 1) ? 2 : 1;
+  }
+}
+
+function checkWinner() {
+  for(let i = 0; i < 3; i++) {
+    if(grid[i][0] && grid[i][0] === grid[i][1] && grid[i][1] === grid[i][2]) return endGame(grid[i][0]);
+    if(grid[0][i] && grid[0][i] === grid[1][i] && grid[1][i] === grid[2][i]) return endGame(grid[0][i]);
+  }
+  if(grid[0][0] && grid[0][0] === grid[1][1] && grid[1][1] === grid[2][2]) return endGame(grid[0][0]);
+  if(grid[0][2] && grid[0][2] === grid[1][1] && grid[1][1] === grid[2][0]) return endGame(grid[0][2]);
+}
+
+function endGame(player) {
+  gameOver = true;
+  winnerDiv.innerText = "Player " + player + " won the match!";
+}
+
+function restartGame() {
+  grid = Array(3).fill().map(() => Array(3).fill(0));
+  currentPlayer = 1;
+  gameOver = false;
+  winnerDiv.innerText = "";
+  createBoard();
+}
+
+  </script>
+</body>
+</html>
